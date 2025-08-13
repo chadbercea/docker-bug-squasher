@@ -1,93 +1,16 @@
 // Docker Bug Squasher - PS1 Arcade Edition
 // A retro 3D game where you squash Docker pun-bugs!
-
-// Multiple CDN fallbacks for Three.js
-const threejsCDNs = [
-    'https://cdnjs.cloudflare.com/ajax/libs/three.js/r150/three.min.js',
-    'https://unpkg.com/three@0.150.0/build/three.min.js',
-    'https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js'
-];
-
-let cdnIndex = 0;
-
-function loadThreeJS() {
-    const script = document.createElement('script');
-    script.src = threejsCDNs[cdnIndex];
-    
-    script.onload = function() {
-        console.log('✅ Three.js loaded from:', threejsCDNs[cdnIndex]);
-        document.getElementById('status').innerHTML = '🐳 Starting Docker Bug Squasher...';
-        setTimeout(initDockerGame, 500);
-    };
-    
-    script.onerror = function() {
-        console.log('❌ Failed to load from:', threejsCDNs[cdnIndex]);
-        cdnIndex++;
-        if (cdnIndex < threejsCDNs.length) {
-            console.log('🔄 Trying next CDN...');
-            document.getElementById('status').innerHTML = `🔄 Trying CDN ${cdnIndex + 1}/${threejsCDNs.length}...`;
-            loadThreeJS();
-        } else {
-            document.getElementById('status').innerHTML = '❌ Could not load Three.js. Check your internet connection.';
-        }
-    };
-    
-    document.head.appendChild(script);
-}
-
-// Start loading Three.js
-loadThreeJS();
-
-// High Score Management
-function getHighScores() {
-    const scores = localStorage.getItem('dockerBugSquasherScores');
-    return scores ? JSON.parse(scores) : [];
-}
-
-function saveHighScore(score, stats) {
-    const highScores = getHighScores();
-    const newScore = {
-        score: score,
-        date: new Date().toLocaleDateString(),
-        time: stats.timePlayed,
-        bugsSquashed: stats.bugsSquashed,
-        perfectRun: stats.perfectRun
-    };
-    
-    highScores.push(newScore);
-    highScores.sort((a, b) => b.score - a.score);
-    
-    // Keep only top 10
-    highScores.splice(10);
-    
-    localStorage.setItem('dockerBugSquasherScores', JSON.stringify(highScores));
-    return highScores.indexOf(newScore);
-}
-
-function displayHighScores(currentScoreIndex = -1) {
-    const highScores = getHighScores();
-    const listElement = document.getElementById('highScoresList');
-    
-    if (highScores.length === 0) {
-        listElement.innerHTML = '<div class="score-entry">No high scores yet!</div>';
-        return;
-    }
-    
-    listElement.innerHTML = highScores.map((score, index) => `
-        <div class="score-entry ${index === currentScoreIndex ? 'current' : ''}">
-            <span>${index + 1}. ${score.score.toLocaleString()}</span>
-            <span>${score.date}</span>
-        </div>
-    `).join('');
-}
-
-function restartGame() {
-    document.getElementById('highScoreScreen').style.display = 'none';
-    location.reload(); // Simple restart
-}
+// This script assumes Three.js is already loaded
 
 // Docker Bug Squashing Game with Arcade Completion
 function initDockerGame() {
+    // Check if Three.js is loaded
+    if (typeof THREE === 'undefined') {
+        console.error('❌ Three.js not loaded!');
+        document.getElementById('status').innerHTML = '❌ Three.js not loaded. Please refresh.';
+        return;
+    }
+    
     document.getElementById('status').style.display = 'none';
     
     let scene, camera, renderer, player;
