@@ -1,0 +1,10 @@
+services:
+  docker-bug-squasher:
+    build: .
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    container_name: docker-bug-squasher-game
+    labels:
+      - "com.docker-bug-squasher.description=PS1-style Docker pun-bug squashing arcade game"
+      - "com.docker-bug-squasher.version=1.0.0"

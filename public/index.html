@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker Bug Squasher - PS1 Arcade Edition</title>
+    <meta name="description" content="A PS1-style arcade game where you squash Docker pun-bugs in a retro 3D environment. Race Conditions, Memory Leaks, Zombie Processes and more!">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            color: #00ff00;
+        }
+        
+        #gameContainer {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            font-size: 14px;
+            text-shadow: 2px 2px 4px #000;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            border: 2px solid #00ff00;
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 100;
+            font-size: 12px;
+            text-shadow: 2px 2px 4px #000;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            border: 2px solid #00ff00;
+        }
+        
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+        
+        #status {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            color: #00ff00;
+            z-index: 1000;
+            text-align: center;
+        }
+        
+        .floating-label {
+            position: absolute;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            text-shadow: 2px 2px 4px #000;
+            background: rgba(0,0,0,0.8);
+            padding: 2px 6px;
+            border-radius: 3px;
+            pointer-events: none;
+            z-index: 50;
+        }
+        
+        .event-text {
+            position: absolute;
+            color: #ffff00;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px #000;
+            pointer-events: none;
+            z-index: 75;
+            animation: eventPop 2s ease-out forwards;
+        }
+        
+        @keyframes eventPop {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            50% { opacity: 1; transform: translateY(-20px) scale(1.2); }
+            100% { opacity: 0; transform: translateY(-40px) scale(0.8); }
+        }
+        
+        #punchList {
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.8);
+            border: 2px solid #ffff00;
+            padding: 15px;
+            border-radius: 8px;
+            color: #ffff00;
+            font-size: 12px;
+            min-width: 200px;
+            max-width: 250px;
+            z-index: 90;
+        }
+        
+        .punch-item {
+            margin: 5px 0;
+            padding: 3px;
+        }
+        
+        .punch-item.completed {
+            text-decoration: line-through;
+            color: #00ff00;
+        }
+        
+        .punch-item.active {
+            background: rgba(255,255,0,0.2);
+            border-radius: 3px;
+        }
+        
+        /* HIGH SCORE SCREEN */
+        #highScoreScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #000011, #001133);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: screenFlash 0.5s ease-in;
+        }
+        
+        @keyframes screenFlash {
+            0% { background: #ffffff; }
+            100% { background: linear-gradient(45deg, #000011, #001133); }
+        }
+        
+        .arcade-title {
+            font-size: 32px;
+            color: #ffff00;
+            text-shadow: 4px 4px 8px #000;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        
+        .level-complete {
+            font-size: 24px;
+            color: #00ff00;
+            text-shadow: 3px 3px 6px #000;
+            margin-bottom: 30px;
+            animation: glow 1.5s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { text-shadow: 3px 3px 6px #000, 0 0 10px #00ff00; }
+            to { text-shadow: 3px 3px 6px #000, 0 0 20px #00ff00, 0 0 30px #00ff00; }
+        }
+        
+        .final-score {
+            font-size: 28px;
+            color: #ffffff;
+            text-shadow: 2px 2px 4px #000;
+            margin-bottom: 40px;
+        }
+        
+        .high-scores-table {
+            background: rgba(0,0,0,0.8);
+            border: 3px solid #00ffff;
+            padding: 20px;
+            border-radius: 10px;
+            min-width: 400px;
+        }
+        
+        .high-scores-title {
+            text-align: center;
+            font-size: 20px;
+            color: #00ffff;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px #000;
+        }
+        
+        .score-entry {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 16px;
+            color: #ffffff;
+        }
+        
+        .score-entry.current {
+            color: #ffff00;
+            animation: highlight 1s ease-in-out infinite alternate;
+        }
+        
+        @keyframes highlight {
+            from { background: rgba(255,255,0,0.1); }
+            to { background: rgba(255,255,0,0.3); }
+        }
+        
+        .restart-button {
+            margin-top: 40px;
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #006600;
+            color: #ffffff;
+            border: 3px solid #00ff00;
+            border-radius: 5px;
+            cursor: pointer;
+            animation: buttonPulse 2s infinite;
+        }
+        
+        .restart-button:hover {
+            background: #009900;
+        }
+        
+        @keyframes buttonPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .victory-stats {
+            margin: 20px 0;
+            text-align: center;
+            color: #cccccc;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="status">🐳 Loading Docker Bug Squasher...</div>
+    <div id="gameContainer">
+        <div id="ui">
+            <div>🐛 DOCKER BUG SQUASHER - PS1 EDITION</div>
+            <div id="debug">Loading...</div>
+        </div>
+        
+        <div id="punchList">
+            <div style="font-weight: bold; text-align: center; margin-bottom: 10px;">📋 PUNCH LIST</div>
+            <div id="objectives">
+                <div class="punch-item active">• Find and collect resources</div>
+                <div class="punch-item">• Squash simple bugs (100 pts)</div>
+                <div class="punch-item">• Collect 3 agent spheres</div>
+                <div class="punch-item">• Squash agent bugs (300 pts)</div>
+                <div class="punch-item">• Find MCP components</div>
+                <div class="punch-item">• Squash MCP bugs (500 pts)</div>
+                <div class="punch-item">• Achieve 2000+ points</div>
+            </div>
+        </div>
+        
+        <div id="instructions">
+            WASD: Move | Mouse: Look Around | SPACEBAR: Squash Bugs/Collect Items<br>
+            Click to lock mouse | Complete all objectives to finish the level!
+        </div>
+    </div>
+
+    <!-- HIGH SCORE SCREEN -->
+    <div id="highScoreScreen">
+        <div class="arcade-title">🐳 DOCKER BUG SQUASHER 🐛</div>
+        <div class="level-complete">★ LEVEL COMPLETE! ★</div>
+        <div class="final-score">FINAL SCORE: <span id="finalScore">0</span></div>
+        
+        <div class="victory-stats">
+            <div>Time Played: <span id="timePlayed">0:00</span></div>
+            <div>Bugs Squashed: <span id="bugsSquashed">0</span></div>
+            <div>Perfect Run: <span id="perfectRun">NO</span></div>
+        </div>
+        
+        <div class="high-scores-table">
+            <div class="high-scores-title">🏆 HIGH SCORES 🏆</div>
+            <div id="highScoresList">
+                <!-- High scores will be inserted here -->
+            </div>
+        </div>
+        
+        <button class="restart-button" onclick="restartGame()">
+            🔄 PLAY AGAIN 🔄
+        </button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r150/three.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>

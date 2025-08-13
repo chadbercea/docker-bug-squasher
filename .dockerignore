@@ -1,0 +1,19 @@
+# Docker ignore patterns
+node_modules/
+npm-debug.log*
+.git/
+.gitignore
+README.md
+.env
+.DS_Store
+
+# Development files
+*.tmp
+*.log
+.vscode/
+.idea/
+
+# OS generated files
+Thumbs.db
+*.swp
+*.swo
