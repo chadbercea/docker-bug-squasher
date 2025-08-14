@@ -1,4 +1,5 @@
 # 🐳 Docker Bug Squasher - PS1 Arcade Edition
+<img width="1358" height="873" alt="image" src="https://github.com/user-attachments/assets/c290d06c-cbea-480f-9350-1b476485f623" />
 
 A retro PS1-style 3D arcade game where you squash hilarious Docker pun-bugs! Experience the nostalgic charm of 90s gaming with authentic pixelated graphics, chunky polygon aesthetics, and satisfying bug-squashing gameplay.
 
