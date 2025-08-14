@@ -299,6 +299,8 @@
         ];
 
         let cdnIndex = 0;
+        let gameLoadAttempts = 0;
+        const maxGameLoadAttempts = 3;
 
         function loadThreeJS() {
             const script = document.createElement('script');
@@ -307,27 +309,7 @@
             script.onload = function() {
                 console.log('✅ Three.js loaded from:', threejsCDNs[cdnIndex]);
                 document.getElementById('status').innerHTML = '🐳 Loading game engine...';
-                
-                // Now load the game script AFTER Three.js is loaded
-                const gameScript = document.createElement('script');
-                gameScript.src = 'game.js';
-                gameScript.onload = function() {
-                    console.log('✅ Game script loaded');
-                    document.getElementById('status').innerHTML = '🐳 Starting Docker Bug Squasher...';
-                    setTimeout(() => {
-                        // The function should now be available globally
-                        if (typeof window.initDockerGame === 'function') {
-                            window.initDockerGame();
-                        } else {
-                            console.error('❌ initDockerGame function not found');
-                            document.getElementById('status').innerHTML = '❌ Game function not loaded. Please refresh.';
-                        }
-                    }, 500);
-                };
-                gameScript.onerror = function() {
-                    document.getElementById('status').innerHTML = '❌ Failed to load game script';
-                };
-                document.head.appendChild(gameScript);
+                loadGameScript();
             };
             
             script.onerror = function() {
@@ -343,6 +325,52 @@
             };
             
             document.head.appendChild(script);
+        }
+
+        function loadGameScript() {
+            // Add cache busting to prevent cached versions
+            const cacheBuster = Date.now();
+            const gameScript = document.createElement('script');
+            gameScript.src = `game.js?v=${cacheBuster}`;
+            
+            gameScript.onload = function() {
+                console.log('✅ Game script loaded with cache buster:', cacheBuster);
+                document.getElementById('status').innerHTML = '🐳 Starting Docker Bug Squasher...';
+                
+                // Wait a bit longer and check multiple times for the function
+                checkAndInitGame();
+            };
+            
+            gameScript.onerror = function() {
+                document.getElementById('status').innerHTML = '❌ Failed to load game script';
+                console.error('Failed to load game.js');
+            };
+            
+            document.head.appendChild(gameScript);
+        }
+
+        function checkAndInitGame() {
+            gameLoadAttempts++;
+            
+            if (typeof window.initDockerGame === 'function') {
+                console.log('✅ Game function found, initializing...');
+                try {
+                    window.initDockerGame();
+                } catch (error) {
+                    console.error('❌ Error initializing game:', error);
+                    document.getElementById('status').innerHTML = '❌ Game initialization error: ' + error.message;
+                }
+            } else if (gameLoadAttempts < maxGameLoadAttempts) {
+                console.log(`🔄 Game function not found, attempt ${gameLoadAttempts}/${maxGameLoadAttempts}, retrying...`);
+                setTimeout(checkAndInitGame, 500);
+            } else {
+                console.error('❌ initDockerGame function not found after', maxGameLoadAttempts, 'attempts');
+                document.getElementById('status').innerHTML = `
+                    ❌ Game function not found after ${maxGameLoadAttempts} attempts<br>
+                    <small>Try refreshing the page or clearing browser cache</small><br>
+                    <button onclick="location.reload()" style="margin-top: 10px; padding: 5px 10px; background: #006600; color: white; border: 1px solid #00ff00; cursor: pointer;">🔄 Refresh Page</button>
+                `;
+            }
         }
 
         // Start loading Three.js
@@ -393,7 +421,7 @@
 
         function restartGame() {
             document.getElementById('highScoreScreen').style.display = 'none';
-            location.reload(); // Simple restart
+            location.reload(true); // Force reload from server, not cache
         }
     </script>
 </body>
