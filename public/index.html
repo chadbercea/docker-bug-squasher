@@ -314,7 +314,15 @@
                 gameScript.onload = function() {
                     console.log('✅ Game script loaded');
                     document.getElementById('status').innerHTML = '🐳 Starting Docker Bug Squasher...';
-                    setTimeout(initDockerGame, 500);
+                    setTimeout(() => {
+                        // The function should now be available globally
+                        if (typeof window.initDockerGame === 'function') {
+                            window.initDockerGame();
+                        } else {
+                            console.error('❌ initDockerGame function not found');
+                            document.getElementById('status').innerHTML = '❌ Game function not loaded. Please refresh.';
+                        }
+                    }, 500);
                 };
                 gameScript.onerror = function() {
                     document.getElementById('status').innerHTML = '❌ Failed to load game script';

@@ -681,3 +681,6 @@ function initDockerGame() {
         document.getElementById('status').style.display = 'block';
     }
 }
+
+// Make function globally accessible
+window.initDockerGame = initDockerGame;
